@@ -20,13 +20,11 @@ namespace ChatServer
                 var client = new Client(_listener.AcceptTcpClient());
                 _users.Add(client);
 
-                /* TODO: Broadcast connection to everyone */
+                /* Broadcast connection to everyone */
                 BroadcastConnection();
 
             }
 
-
-            Console.WriteLine("Client has connected");
         }
 
         static void BroadcastConnection()

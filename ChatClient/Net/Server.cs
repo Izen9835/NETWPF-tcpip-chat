@@ -55,6 +55,7 @@ namespace ChatClient.Net
                     switch (opcode)
                     {
                         // case 0 is already handled elsewhere...
+                        // when a new connection is received on the server
                         case 1:
                             // invoke connectedevent if it is not already invoked
                             connectedEvent?.Invoke();

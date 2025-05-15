@@ -28,11 +28,15 @@ namespace ChatClient.MVVM.ViewModel
         // Constructor
         public MainViewModel()
         {
+            // a WPF collection that notifies the UI when items are added or removed
             Users = new ObservableCollection<UserModel>();
             Messages = new ObservableCollection<string>();
 
             _server = new Server();
 
+            /* Event Handlers */
+            // essentially subscribes to these events as defined in Server.cs
+            // e.g. runs UserConnected() when connectedEvent is invoked
             _server.connectedEvent += UserConnected;
             _server.msgReceivedEvent += MessageReceived;
             _server.userDisconnectedEvent += RemoveUser;
@@ -69,6 +73,9 @@ namespace ChatClient.MVVM.ViewModel
             // if the user is not in the list yet then add them
             if (!Users.Any(x => x.UID == user.UID))
             {
+                // UI thread will always listen for changes in ObservableCollections
+                // So if you make a change in ObservableCollection, then you must do it via 
+                // Dispatcher.Invoke() to run it synchronously on the UI thread
                 Application.Current.Dispatcher.Invoke(() => Users.Add(user));
             }
         }
