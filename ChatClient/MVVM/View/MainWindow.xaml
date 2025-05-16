@@ -25,10 +25,16 @@
         <DockPanel>
             <TextBox Height="25"
                      DockPanel.Dock="Top"
-                     Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"/>
+                     Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}"
+                     IsReadOnly="{Binding ConnectionHandler.IsConnected}">
+                <TextBox.InputBindings>
+                    <KeyBinding Key="Enter"
+                                Command="{Binding ConnectToServerCommand}"/>
+                </TextBox.InputBindings>
+            </TextBox>
             <Button Height="25"
                     DockPanel.Dock="Top"
-                    Content="Connect"
+                    Content="{Binding ConnectionHandler.ButtonText}"
                     Command="{Binding ConnectToServerCommand}"/>
             <ListView ItemsSource="{Binding Users}">
                 <ListView.ItemTemplate>
@@ -47,7 +53,12 @@
                 <TextBox Height="55" 
                          Width="545" 
                          VerticalContentAlignment="Center"
-                         Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}"/>
+                         Text="{Binding Message, UpdateSourceTrigger=PropertyChanged}">
+                    <TextBox.InputBindings>
+                        <KeyBinding Key="Enter"
+                                    Command="{Binding SendMessageCommand}"/>
+                    </TextBox.InputBindings>
+                </TextBox>
                 <Button Width="55"
                         Content="Send"
                         Command="{Binding SendMessageCommand}"/>

@@ -4,6 +4,7 @@ using ChatClient.Net;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,19 +12,41 @@ using System.Windows;
 
 namespace ChatClient.MVVM.ViewModel
 {
-    class MainViewModel
+    class MainViewModel : INotifyPropertyChanged
     {
         public RelayCommand ConnectToServerCommand { get; set; }
 
         public string Username { get; set; }
 
-        public string Message { get; set; }
+        private string _message;
+        public string Message
+        {
+            get { return _message; }
+            set
+            {
+                if (_message != value)
+                {
+                    _message = value;
+                    OnPropertyChanged(nameof(Message)); // triggers the UI update
+                }
+            }
+        }
         public RelayCommand SendMessageCommand { get; set; }
 
         public ObservableCollection<UserModel> Users { get; set; }
         public ObservableCollection<string> Messages { get; set; }
 
         private Server _server;
+
+        // event handler to clear message bar when send message
+        public event PropertyChangedEventHandler PropertyChanged;
+        protected void OnPropertyChanged(string propertyName)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        public ConnectionHandler ConnectionHandler { get; set; }
+
 
         // Constructor
         public MainViewModel()
@@ -41,12 +64,48 @@ namespace ChatClient.MVVM.ViewModel
             _server.msgReceivedEvent += MessageReceived;
             _server.userDisconnectedEvent += RemoveUser;
 
+
+            ConnectionHandler = new ConnectionHandler();
+            ConnectionHandler.OnConnect += () => _server.ConnectToServer(Username);
+            ConnectionHandler.OnDisconnect += () =>
+            {
+                _server.SendDisconnectMessageToServer();
+                Application.Current.Dispatcher.Invoke(() => Users.Remove(getUserFromUsername(Username)));
+            };
+
+
+
+            // in RelayCommand, the 1st parameter is the execute command
+            // the 2nd parameter is the CanExecute condition
+
             // command is allowed to run IF the username is NOT null or empty
-            ConnectToServerCommand = new RelayCommand(o => _server.ConnectToServer(Username), o => !string.IsNullOrEmpty(Username));
+            ConnectToServerCommand = new RelayCommand(
+                o =>
+                {
+                    ConnectionHandler.ToggleConnection();
+                },
+                o => !string.IsNullOrEmpty(Username));
 
             // greys out the send button if the textbox is empty
-            SendMessageCommand = new RelayCommand(o => _server.SendMessageToServer(Message), o => !string.IsNullOrEmpty(Message));
+            SendMessageCommand = new RelayCommand(
+                o =>
+                {
+                    _server.SendMessageToServer(Message);
+                    Message = string.Empty;
+                },
+                o =>
+                {
+                    return !string.IsNullOrEmpty(Message) && ConnectionHandler.IsConnected;
+                }
+            );
 
+        }
+
+        private UserModel getUserFromUsername(string username)
+        {
+            var gotUser = Users.FirstOrDefault(o => o.Username == username);
+            // assume that username MUST be in the Users list
+            return gotUser;
         }
 
         private void RemoveUser()

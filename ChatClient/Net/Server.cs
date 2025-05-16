@@ -17,6 +17,8 @@ namespace ChatClient.Net
         public event Action msgReceivedEvent;
         public event Action userDisconnectedEvent;
 
+        private CancellationTokenSource _cts;
+
         // Constructor
         public Server()
         {
@@ -40,6 +42,9 @@ namespace ChatClient.Net
                     _client.Client.Send(connectPacket.GetPacketBytes());
                 }
 
+                _cts = new CancellationTokenSource();
+
+
                 ReadPackets();
 
             }
@@ -49,33 +54,52 @@ namespace ChatClient.Net
         {
             Task.Run(() =>
             {
-                while (true)
+                while (!_cts.Token.IsCancellationRequested)
                 {
-                    var opcode = PacketReader.ReadByte();
-                    switch (opcode)
+                    try
                     {
-                        // case 0 is already handled elsewhere...
-                        // when a new connection is received on the server
-                        case 1:
-                            // invoke connectedevent if it is not already invoked
-                            connectedEvent?.Invoke();
-                            break;
-
-                        case 5:
-                            msgReceivedEvent?.Invoke();
-                            break;
-
-                        case 10:
-                            userDisconnectedEvent?.Invoke();
-                            break;
-
-                        default:
-                            Console.WriteLine("ah yes????");
-                            break;
+                        var opcode = PacketReader.ReadByte();
+                        switch (opcode)
+                        {
+                            case 1:
+                                connectedEvent?.Invoke();
+                                break;
+                            case 5:
+                                msgReceivedEvent?.Invoke();
+                                break;
+                            case 10:
+                                userDisconnectedEvent?.Invoke();
+                                break;
+                            case 11:
+                                // the ACK signal from server that we can safely disconnect
+                                DisconnectFromServer();
+                                break;
+                            default:
+                                Console.WriteLine("Unknown opcode received");
+                                break;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"ReadPackets Exception: {ex.Message}");
+                        break;
                     }
                 }
-            });
+
+                Console.WriteLine("Packet reading task stopped.");
+            }, _cts.Token);
         }
+
+        public void DisconnectFromServer()
+        {
+            if (_client.Connected)
+            {
+                _cts.Cancel(); // to stop the while loop in ReadPackets
+                _client.Close(); //disconnect from TCP Server
+                _client = new TcpClient(); // reset to allow new connection later
+            }
+        }
+
 
         public void SendMessageToServer(string message)
         {
@@ -83,6 +107,13 @@ namespace ChatClient.Net
             // opcode 5 is for sending a text message
             messagePacket.WriteOpCode(5);
             messagePacket.WriteMessage(message);
+            _client.Client.Send(messagePacket.GetPacketBytes());
+        }
+
+        public void SendDisconnectMessageToServer()
+        {
+            var messagePacket = new PacketBuilder();
+            messagePacket.WriteOpCode(10);
             _client.Client.Send(messagePacket.GetPacketBytes());
         }
     }
