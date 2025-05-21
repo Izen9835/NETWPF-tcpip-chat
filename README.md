@@ -1,4 +1,10 @@
 # TCP/IP Chat Server
+# Highly recommend [this video](https://www.youtube.com/watch?v=I-Xmp-mulz4) by ```Payload``` on making a Chat Server in WPF C#
+This program was developed based on the above video  
+
+  
+![image](https://github.com/user-attachments/assets/ffe9666e-5f3d-4974-8cac-dbe4cb1416a6)
+
 In this readme, I basically document the different .WPF app specific things that were used in developing this application,  
 as well as the TCP/IP related libraries used
 
